@@ -70,6 +70,13 @@ pub mod tx;
 pub mod types;
 pub mod util;
 
+/// C-vs-Rust conformance tests (see the module docs). Only compiled for
+/// `cargo test`, where `std` is available to run the C harness.
+#[cfg(test)]
+extern crate std;
+#[cfg(test)]
+mod conformance;
+
 use embedded_hal_async::delay::DelayNs;
 use embedded_hal_async::spi::SpiDevice;
 

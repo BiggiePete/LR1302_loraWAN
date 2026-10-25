@@ -66,7 +66,9 @@ pub const VERSION_STRING: &str = "Version: 2.1.0;";
 
 /// C: `is_same_pkt` — two packets are identical when their timestamps differ
 /// by at most 24 µs and channel, datarate, size and payload match.
-fn is_same_pkt(p1: &RxPacket, p2: &RxPacket) -> bool {
+///
+/// `pub(crate)` so the C-vs-Rust conformance tests can drive it directly.
+pub(crate) fn is_same_pkt(p1: &RxPacket, p2: &RxPacket) -> bool {
     let dt = (p1.count_us as i64 - p2.count_us as i64).abs();
     dt <= 24
         && p1.if_chain == p2.if_chain
@@ -76,16 +78,16 @@ fn is_same_pkt(p1: &RxPacket, p2: &RxPacket) -> bool {
 }
 
 /// C: `remove_pkt` — replace the packet at `pkt_index` with the last one.
-fn remove_pkt(p: &mut [RxPacket], nb_pkt: &mut usize, pkt_index: usize) {
+pub(crate) fn remove_pkt(p: &mut [RxPacket], nb_pkt: &mut usize, pkt_index: usize) {
     if pkt_index != *nb_pkt - 1 {
         p[pkt_index] = p[*nb_pkt - 1];
     }
     *nb_pkt -= 1;
 }
 
-/// C: `merge_packets` — remove duplicates (keeping the packet with a valid
+/// C: `merge_packets` - remove duplicates (keeping the packet with a valid
 /// CRC / fine timestamp) then sort by ascending `count_us`.
-fn merge_packets(p: &mut [RxPacket], nb_pkt: &mut usize) {
+pub(crate) fn merge_packets(p: &mut [RxPacket], nb_pkt: &mut usize) {
     let mut cpt = *nb_pkt;
 
     // remove duplicates

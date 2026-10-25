@@ -127,6 +127,24 @@ responsibility (see `loragw_spi.h` in the C HAL). The driver only needs an
 [`embedded_hal_async::spi::SpiDevice`] and an
 [`embedded_hal_async::delay::DelayNs`].
 
+## Examples
+
+Runnable on the host against a mock SPI bus — no hardware needed
+(`cargo run -p lr1302 --example <name>`, see [`examples/`](examples)):
+
+| example | what it shows |
+|---|---|
+| `mock_bus` | the complete API flow (configuration → `connect()`/`start()` → `receive()` loop → `send()` → `stop()`) driven against a `MockSpiDevice` implementing `SpiDevice<u8>`, with every error handled and the ones expected without hardware explained |
+| `config_eu868` | the reference packet-forwarder file `LR1302_HAL/sx1302_hal/packet_forwarder/global_conf.json.sx1250.EU868` translated block by block into the equivalent `board_setconf` / `rxrf_setconf` / `rxif_setconf` / `demod_setconf` / `txgain_setconf` calls |
+| `time_on_air` | `time_on_air()` for several LoRa / FSK parameter combinations, and class-A downlink scheduling relative to an uplink's `count_us` (`TIMESTAMPED` vs `IMMEDIATE`, RX1/RX2 offsets, overlap check) |
+
+`examples/embassy_firmware.rs.md` is a **reference listing that is not
+compiled by this workspace** (a non-cargo file): how to wire the driver into
+an embassy firmware — SPI bus at mode 0 / ≤ 2 MHz wrapped into a
+`SpiDevice`, `embassy_time::Delay` as the delay, the CoreCell power/reset
+GPIO sequence from `tools/reset_lgw.sh`, and a single task owning the
+driver.
+
 ## Features
 
 * `defmt` — derive `defmt::Format` for the public types **and** turn on the
