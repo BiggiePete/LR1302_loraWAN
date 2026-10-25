@@ -42,7 +42,6 @@
 //!   uninitialised locals; the port returns `None` (see
 //!   `invalid_time_on_air_inputs_are_rejected`).
 
-use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::{eprintln, format, vec};
@@ -113,23 +112,36 @@ fn harness() -> Option<PathBuf> {
 }
 
 /// Feed `input` to the C harness and collect the lines it prints.
+///
+/// The input goes through a temp file rather than a pipe: the sweeps below
+/// are large enough (~100 kB) that a pipe would deadlock against the harness'
+/// own stdout once that pipe fills up.
 fn run_c(exe: &std::path::Path, input: &[String]) -> Vec<String> {
-    let mut child = Command::new(exe)
-        .stdin(Stdio::piped())
+    let tmp_dir = std::env::temp_dir();
+    // A per-process id alone is not enough: cargo test runs the tests in
+    // parallel threads of the same process, so add a unique sequence number.
+    static SEQ: core::sync::atomic::AtomicUsize = core::sync::atomic::AtomicUsize::new(0);
+    let seq = SEQ.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+    let in_path = tmp_dir.join(format!(
+        "lr1302_difftest_in_{}_{}.txt",
+        std::process::id(),
+        seq
+    ));
+    let mut text = String::new();
+    for line in input {
+        text.push_str(line);
+        text.push('\n');
+    }
+    std::fs::write(&in_path, &text).expect("failed to write difftest input file");
+    let in_file = std::fs::File::open(&in_path).expect("failed to open difftest input file");
+
+    let out = Command::new(exe)
+        .stdin(Stdio::from(in_file))
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
-        .spawn()
-        .unwrap_or_else(|e| panic!("failed to spawn {}: {e}", exe.display()));
-    {
-        let stdin = child.stdin.as_mut().expect("harness stdin");
-        for line in input {
-            stdin.write_all(line.as_bytes()).unwrap();
-            stdin.write_all(b"\n").unwrap();
-        }
-    }
-    let out = child
-        .wait_with_output()
+        .output()
         .unwrap_or_else(|e| panic!("failed to run {}: {e}", exe.display()));
+    let _ = std::fs::remove_file(&in_path);
     String::from_utf8_lossy(&out.stdout)
         .lines()
         .map(str::to_string)
@@ -142,10 +154,13 @@ fn run_c(exe: &std::path::Path, input: &[String]) -> Vec<String> {
 /// stdout stream, so only lines whose first token matches the next expected
 /// response are compared; anything else is treated as noise and ignored.
 fn assert_matches_c(input: Vec<String>, expected: Vec<String>) {
-    assert_eq!(
-        input.len(),
+    // Most commands map 1:1 input line -> response line; `merge` consumes a
+    // variable number of extra lines, hence only the <= comparison.
+    assert!(
+        input.len() >= expected.len(),
+        "internal error: more expected lines ({}) than input commands ({})",
         expected.len(),
-        "internal error: one expected line per input command"
+        input.len()
     );
     let Some(exe) = harness() else { return };
     let lines = run_c(&exe, &input);

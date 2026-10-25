@@ -117,10 +117,15 @@ pub(crate) fn merge_packets(p: &mut [RxPacket], nb_pkt: &mut usize) {
         j += 1;
     }
 
-    // sort by ascending count_us (C: qsort_r with compare_pkt_tmst)
+    // Sort by ascending count_us (C: qsort_r with compare_pkt_tmst).
+    //
+    // The C comparator copies `count_us` into an `int` before comparing, i.e.
+    // the order is the *signed* 32-bit order, not the unsigned one. That is
+    // what makes a timestamp just before the 32-bit rollover (0xFFFFFFF0)
+    // sort before one just after it (0x00000010), so it is reproduced here.
     for i in 1..cpt {
         let mut k = i;
-        while k > 0 && p[k].count_us < p[k - 1].count_us {
+        while k > 0 && (p[k].count_us as i32) < (p[k - 1].count_us as i32) {
             p.swap(k, k - 1);
             k -= 1;
         }

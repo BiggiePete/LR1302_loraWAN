@@ -71,7 +71,10 @@ for if_chain in 0..8u8 {
     let mut conf = IfConf {
         enable: true,
         rf_chain: 0,
-        freq_hz: (if_chain as i32 - 4) * 200_000, // -400 kHz .. +400 kHz
+        // -350 kHz .. +350 kHz in 100 kHz steps. An IF offset must keep the
+        // whole 125 kHz channel inside the radio's +/-500 kHz window
+        // (|offset| <= 437.5 kHz) or `rxif_setconf` rejects it.
+        freq_hz: (if_chain as i32 * 100_000) - 350_000,
         ..Default::default()
     };
     gw.rxif_setconf(if_chain, &mut conf)?;
