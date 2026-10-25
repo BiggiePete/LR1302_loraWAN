@@ -1,14 +1,20 @@
 ﻿//! SX1302 RX buffer fetch and packet parsing.
 //!
-//! Ports the C files `loragw_sx1302_rx.c` ([`Lr1302::rx_buffer_new`],
-//! [`Lr1302::rx_buffer_del`], [`Lr1302::rx_buffer_fetch`],
-//! [`Lr1302::rx_buffer_pop`]) and the RX parts of `loragw_sx1302.c`
-//! ([`Lr1302::sx1302_fetch`], [`Lr1302::sx1302_parse`],
+//! Ports the C files `loragw_sx1302_rx.c` (`Lr1302::rx_buffer_new`,
+//! `Lr1302::rx_buffer_del`, `Lr1302::rx_buffer_fetch`,
+//! `Lr1302::rx_buffer_pop`) and the RX parts of `loragw_sx1302.c`
+//! (`Lr1302::sx1302_fetch`, `Lr1302::sx1302_parse`,
 //! [`sx1302_lora_payload_crc`], [`sx1302_rssi_get_temperature_offset`]).
 //!
 //! Fine ("precision") timestamps are not ported: the
 //! `precise_timestamp_calculate` branches of `sx1302_parse` are skipped and
 //! [`RxPacket::ftime_received`] is always `false`, `RxPacket::ftime` always 0.
+//!
+//! Note on framing: the C macros expand to `TAKE_N_BITS_FROM(x, p, n)` which
+//! is a plain mask for `n < 8` (ported as [`take_bits`]), and the identity for
+//! `n == 8`. The byte-wide fields are therefore read directly here — calling
+//! `take_bits(x, 0, 8)` would evaluate `1u8 << 8` in `util::take_bits` and
+//! overflow.
 
 use embedded_hal_async::delay::DelayNs;
 use embedded_hal_async::spi::SpiDevice;

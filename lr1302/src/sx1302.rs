@@ -13,6 +13,7 @@ use embedded_hal_async::spi::SpiDevice;
 
 use crate::consts::*;
 use crate::error::{Error, Result};
+use crate::log::{debug, trace};
 use crate::reg::*;
 use crate::sx1302_defs::*;
 use crate::util::bw_getval;
@@ -109,6 +110,7 @@ where
 
     /// Initialize the SX1302 and its internal structures (C: `sx1302_init`).
     pub(crate) async fn sx1302_init(&mut self) -> Result<()> {
+        trace!("sx1302 basic init");
         // Initialize internal counter
         self.timestamp_counter_new();
 
@@ -223,6 +225,7 @@ where
     /// Apply the reset sequence to the radio of the given RF chain
     /// (C: `sx1302_radio_reset`).
     pub(crate) async fn sx1302_radio_reset(&mut self, rf_chain: u8, type_: RadioType) -> Result<()> {
+        trace!("radio reset chain={=u8}", rf_chain);
         // Check input parameters
         if rf_chain as usize >= LGW_RF_CHAIN_NB {
             return Err(Error::InvalidConfig("rf_chain"));
@@ -313,6 +316,7 @@ where
     /// (`sx1302_cal_start`, `loragw_cal.c`) is not ported and reports
     /// [`Error::Unsupported`].
     pub(crate) async fn sx1302_radio_calibrate(&mut self) -> Result<()> {
+        debug!("calibrating radios");
         let clksrc = self.ctx.board.clksrc;
 
         // -- Reset radios
@@ -1387,6 +1391,7 @@ where
 
     /// Enable the modems and RX (C: `sx1302_modem_enable`).
     pub(crate) async fn sx1302_modem_enable(&mut self) -> Result<()> {
+        trace!("enabling demodulators");
         // Enable LoRa multi-SF modems
         self.com
             .reg_w(SX1302_REG_COMMON_GEN_CONCENTRATOR_MODEM_ENABLE, 0x01)

@@ -16,6 +16,7 @@ use embedded_hal_async::spi::SpiDevice;
 
 use crate::consts::{RadioType, DR_LORA_SF7};
 use crate::error::{Error, Result};
+use crate::log::debug;
 use crate::reg::{
     SX1302_REG_AGC_MCU_CTRL_HOST_PROG, SX1302_REG_AGC_MCU_CTRL_MCU_CLEAR,
     SX1302_REG_AGC_MCU_CTRL_PARITY_ERROR, SX1302_REG_AGC_MCU_MCU_AGC_STATUS_MCU_AGC_STATUS,
@@ -57,6 +58,7 @@ where
     /// Only the first [`MCU_FW_SIZE`] bytes of `firmware` are transferred,
     /// as in the C function.
     pub(crate) async fn sx1302_agc_load_firmware(&mut self, firmware: &[u8]) -> Result<()> {
+        debug!("uploading AGC firmware image");
         if firmware.len() < MCU_FW_SIZE {
             return Err(Error::InvalidConfig("firmware size"));
         }
@@ -95,6 +97,7 @@ where
             return Err(Error::FirmwareVerify);
         }
 
+        debug!("AGC firmware verified");
         Ok(())
     }
 
@@ -190,6 +193,7 @@ where
         }
         let fdd_mode: u8 = if full_duplex { 1 } else { 0 };
         let agc_params = AGC_PARAMS_SX1250;
+        debug!("starting AGC MCU (firmware version {=u8})", version);
 
         // Wait for AGC fw to be started, and VERSION available in mailbox
         self.sx1302_agc_wait_status(0x01).await?; /* fw has started, VERSION is ready in mailbox */
@@ -371,6 +375,7 @@ where
     /// Only the first [`MCU_FW_SIZE`] bytes of `firmware` are transferred,
     /// as in the C function.
     pub(crate) async fn sx1302_arb_load_firmware(&mut self, firmware: &[u8]) -> Result<()> {
+        debug!("uploading arbiter firmware image");
         if firmware.len() < MCU_FW_SIZE {
             return Err(Error::InvalidConfig("firmware size"));
         }
@@ -409,6 +414,7 @@ where
             return Err(Error::FirmwareVerify);
         }
 
+        debug!("arbiter firmware verified");
         Ok(())
     }
 
@@ -471,6 +477,7 @@ where
     /// The C `ftime_context` pointer is replaced by `self.ctx.ftime`
     /// (see `crate::context::Context::ftime`).
     pub(crate) async fn sx1302_arb_start(&mut self, version: u8) -> Result<()> {
+        debug!("starting arbiter MCU (firmware version {=u8})", version);
         // Wait for ARB fw to be started, and VERSION available in debug registers
         self.sx1302_arb_wait_status(0x01).await?;
 

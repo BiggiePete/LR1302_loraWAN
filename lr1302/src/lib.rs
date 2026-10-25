@@ -23,6 +23,13 @@
 //! LBT / spectral scan, USB transport, GPS UART, the STTS751 temperature
 //! sensor, the AD5338R DAC, and fine ("precision") timestamps.
 //!
+//! ## Logging
+//!
+//! Enable the `defmt` feature to get `defmt::trace!` / `defmt::debug!`
+//! diagnostics (SPI traffic, chip detection, start/stop, every RX/TX packet)
+//! in addition to `defmt::Format` derives on the public types. Without the
+//! feature all logging compiles away.
+//!
 //! ## Example
 //!
 //! ```ignore

@@ -225,7 +225,10 @@ the integrator, not by module authors.
 
 ## 8. Style
 
-* `f32`/`f64` arithmetic is available in `no_std` — use it where C does.
+* `f32`/`f64` **arithmetic** (`+ - * /`, casts, comparisons) is available in
+  `no_std`, but the std-only methods are **not**: `ceil`, `floor`, `round`,
+  `sqrt`, `powi`/`powf`, `exp`, `log*`. Use integer arithmetic (see
+  `util::ceil_div`) or an explicit manual equivalent instead.
 * Keep C computation order and casts (`as u16`, `as i8`, ...) so results stay
   bit-identical. Prefer explicit typed literals (`0x1234u32`).
 * Integer division truncates in both languages — no change needed.
@@ -235,3 +238,17 @@ the integrator, not by module authors.
   repository root and fix errors **in your file only**; errors reported
   against other files (written concurrently) are expected — list them in your
   summary instead of fixing them.
+
+## 9. Logging
+
+* `src/log.rs` defines `crate::log::{trace, debug}`; with the `defmt` cargo
+  feature they forward to `defmt::trace!` / `defmt::debug!`, without it they
+  expand to nothing. Import with `use crate::log::debug;` (only what you use,
+  or you get an unused-import warning with the feature off).
+* Format specs must be defmt's, not Rust's: `{=u8}`, `{=u32}`, `{=i32}`,
+  `{=bool}` — `{}` only for types deriving `defmt::Format`. Never log `f32`/
+  `f64` values directly: scale them (`(snr * 100.0) as i32`, centi-dB).
+* With the feature off the arguments are **not evaluated**, so a log must
+  never be the only use of a variable/parameter (it would warn when the
+  feature is off). Log values that are already used elsewhere, or log
+  argument-free messages.
