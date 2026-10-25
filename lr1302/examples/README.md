@@ -12,6 +12,7 @@ each file. `mock_bus.rs` contains the mock implementation
 |---|---|
 | [`mock_bus.rs`](mock_bus.rs) | the complete API flow — board/RF/IF/demod/TX-gain configuration, `connect()`, `start()`, a `receive()` loop with idle sleeps, `send()`, `status()`, counters, `stop()` — with every error handled and explained |
 | [`config_eu868.rs`](config_eu868.rs) | the reference packet-forwarder file `LR1302_HAL/sx1302_hal/packet_forwarder/global_conf.json.sx1250.EU868` translated block by block into `board_setconf` / `rxrf_setconf` / `rxif_setconf` / `demod_setconf` / `txgain_setconf` / `ftime_setconf` calls (each block names its JSON key) |
+| [`config_us915.rs`](config_us915.rs) | the same translation for `global_conf.json.sx1250.US915` — both radios, the 8 channels split 4/4 over them (903.9..905.3 MHz = LoRaWAN sub-band 2), the 500 kHz DR4 channel, the disabled `chan_FSK`, and what the US915 923..928 MHz downlink band means for `TxPacket::freq_hz` |
 | [`time_on_air.rs`](time_on_air.rs) | `time_on_air()` for several LoRa/FSK parameter combinations, and class-A downlink scheduling relative to an uplink's `count_us` (`TIMESTAMPED` vs `IMMEDIATE`, RX1/RX2 offsets, overlap check) |
 | [`embassy_firmware.rs.md`](embassy_firmware.rs.md) | **not compiled by this workspace** — a reference listing for wiring the driver into an embassy firmware: CoreCell power/reset GPIO sequence, SPI bus at mode 0 / ≤ 2 MHz wrapped into a `SpiDevice`, `embassy_time::Delay`, one task owning the driver |
 
@@ -20,6 +21,7 @@ Run them from the repository root:
 ```sh
 cargo run -p lr1302 --example mock_bus
 cargo run -p lr1302 --example config_eu868
+cargo run -p lr1302 --example config_us915
 cargo run -p lr1302 --example time_on_air
 ```
 

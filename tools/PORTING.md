@@ -252,3 +252,22 @@ the integrator, not by module authors.
   never be the only use of a variable/parameter (it would warn when the
   feature is off). Log values that are already used elsewhere, or log
   argument-free messages.
+
+## 10. Verifying against the C HAL
+
+Pure, hardware-independent functions are checked bit-for-bit against the
+unmodified vendor sources by the difftest harness
+(`tools/difftest/README.md`, driver in `src/conformance.rs`):
+
+* Run `cargo test -p lr1302` after touching any of the compared functions:
+  `toa`, `rx::sx1302_lora_payload_crc`, `rx::sx1302_rssi_get_temperature_offset`,
+  `sx1302::calculate_freq_to_time_drift`, `sx1302::sx1302_get_ifmod_config`,
+  `timestamp::timestamp_counter_correction`, `hal::merge_packets`.
+* The harness needs a C compiler (MinGW gcc on Windows); set
+  `LR1302_DIFTEST_SKIP=1` to skip the comparison when there is none.
+* When a sweep is added or extended, extend **both** sides: the expected
+  lines are computed with the ported Rust code, so a wrong port fails the
+  test rather than being blessed by a hand-written expectation.
+* Known deliberate differences are listed in `tools/difftest/README.md`;
+  if your change introduces a new one, document it there instead of
+  loosening the comparison.

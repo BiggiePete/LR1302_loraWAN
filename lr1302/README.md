@@ -71,10 +71,12 @@ for if_chain in 0..8u8 {
     let mut conf = IfConf {
         enable: true,
         rf_chain: 0,
-        // -350 kHz .. +350 kHz in 100 kHz steps. An IF offset must keep the
-        // whole 125 kHz channel inside the radio's +/-500 kHz window
-        // (|offset| <= 437.5 kHz) or `rxif_setconf` rejects it.
-        freq_hz: (if_chain as i32 * 100_000) - 350_000,
+        // 8 channels on 200 kHz spacing: -700 kHz .. +700 kHz (the same
+        // spacing the real global_conf.json files use). An IF offset must
+        // keep the whole 125 kHz channel inside the radio's 1.6 MHz window,
+        // i.e. |offset| + 62.5 kHz <= 800 kHz, or `rxif_setconf` rejects it
+        // as "freq_hz too low/high".
+        freq_hz: (if_chain as i32 * 200_000) - 700_000,
         ..Default::default()
     };
     gw.rxif_setconf(if_chain, &mut conf)?;
@@ -139,6 +141,7 @@ Runnable on the host against a mock SPI bus — no hardware needed
 |---|---|
 | `mock_bus` | the complete API flow (configuration → `connect()`/`start()` → `receive()` loop → `send()` → `stop()`) driven against a `MockSpiDevice` implementing `SpiDevice<u8>`, with every error handled and the ones expected without hardware explained |
 | `config_eu868` | the reference packet-forwarder file `LR1302_HAL/sx1302_hal/packet_forwarder/global_conf.json.sx1250.EU868` translated block by block into the equivalent `board_setconf` / `rxrf_setconf` / `rxif_setconf` / `demod_setconf` / `txgain_setconf` calls |
+| `config_us915` | the same translation for `global_conf.json.sx1250.US915`: both radios, the 8 uplink channels split 4/4 over them (903.9–905.3 MHz = LoRaWAN sub-band 2), the 500 kHz DR4 channel, the disabled `chan_FSK`, and how the US915 923–928 MHz downlink band maps onto `TxPacket::freq_hz` |
 | `time_on_air` | `time_on_air()` for several LoRa / FSK parameter combinations, and class-A downlink scheduling relative to an uplink's `count_us` (`TIMESTAMPED` vs `IMMEDIATE`, RX1/RX2 offsets, overlap check) |
 
 `examples/embassy_firmware.rs.md` is a **reference listing that is not
@@ -231,6 +234,20 @@ Notes:
   1.x, so the rest of your firmware must use `defmt`/`defmt-rtt` 1.x too —
   mixing a 0.3 backend with 1.x logs means the backend never sees them (and
   `defmt` panics when no backend is registered).
+
+## Verifying against the C HAL
+
+`cargo test -p lr1302` runs a C ↔ Rust conformance harness: it builds the
+**unmodified** Semtech sources (`tools/difftest/`) with a C compiler and
+compares their output, line by line, against this port for time-on-air (LoRa
+and FSK, µs and ms), the payload CRC16, the RSSI temperature compensation,
+the frequency-to-time drift, the IF-modem table, the timestamp correction and
+the RX packet de-duplication/sorting — sweeps over the whole legal parameter
+space plus edge cases such as the 32-bit timestamp rollover.
+
+See [`tools/difftest/README.md`](../tools/difftest/README.md) for the protocol
+and the list of deliberate differences. Set `LR1302_DIFTEST_SKIP=1` to skip it
+on a machine without a C compiler.
 
 ## Regenerating the register map and firmware images
 

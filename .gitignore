@@ -1,1 +1,5 @@
 target
+
+# C conformance harness build output (rebuilt by tools/difftest/build.ps1)
+tools/difftest/obj/
+tools/difftest/difftest_c.exe
